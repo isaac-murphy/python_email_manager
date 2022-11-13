@@ -76,24 +76,35 @@ class mail_scraper():
         # The Body of the message is in Encrypted format. So, we have to decode it.
         # Get the data and decode it with base 64 decoder.
         #print('++DEBUG: ', len(payload.get('parts')))
-        parts = payload.get('parts')[0]
-        data = parts['body']['data']
-        data = data.replace("-","+").replace("_","/")
-
-        decoded_data = base64.b64decode(data)
-        #print(f'+++++++++++{decoded_data}')
-
-        # Now, the data obtained is in lxml. So, we will parse 
-        # it with BeautifulSoup library
-        soup = BeautifulSoup(decoded_data , "lxml")
-        message_body = soup.text
+        message_body = ''
+        body = payload.get('body')
+        if body['size'] > 0: #if the message body is not empty
+            body_text = body['data']
+            body_text = body_text.replace("-","+").replace("_","/") #prepare for decoding
+            body_text = base64.b64decode(body_text) #decode 
+            body_text = BeautifulSoup(body_text, 'lxml') #parse into readible format and extract text 
+            body_text = body_text.text
+            message_body+='\n'+body_text
+            #print('body taxt\n', body_text)
+        
+        #need to get 'parts' from email if the email was forwarded
+        if payload.get('parts'):
+            parts_text = payload.get('parts')[0]['body']['data']
+            parts_text = parts_text.replace("-","+").replace("_","/")
+            parts_text = base64.b64decode(parts_text)
+            parts_text = BeautifulSoup(parts_text, 'lxml')
+            parts_text = parts_text.text
+            message_body += '\n' + parts_text
+            #print('fwd: \n', parts_text)
         
         return (f'{subject}\n{sender}\n{message_body}')
 
 
 class mail_parser():
     ''' a parser for emails. constructed with any number of keywords, it can parse a message to 
-    return the lines of text which start with one of the keywords'''
+    return the lines of text which start with one of the keywords
+    currently functional for gmail format emails. may struggle with email sent from other apps due 
+    to different formatting (specifically: mail for windows app)'''
 
     def __init__(self, *target_words):
         self.targets = target_words
@@ -144,6 +155,7 @@ class mail_manager():
 
     def __call__(self, query):
         self.get_emails(query)
+        #print('downloaded and decoded: ', self.scraper.emails)
         df = self.read_emails(self.scraper.emails)
         print('new data\n', df)
         self.update(df)
