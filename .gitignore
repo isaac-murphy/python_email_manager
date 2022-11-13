@@ -1,4 +1,5 @@
 test.py
+email_manager.pickle
 credentials.json
 temp.json
 token.json
