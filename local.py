@@ -153,11 +153,11 @@ class mail_manager():
     def update(self, df): 
         self.saved_data = pd.merge(self.saved_data, df, how = 'outer')
 
-    def __call__(self, query):
+    def __call__(self, query, printall = False):
         self.get_emails(query)
         #print('downloaded and decoded: ', self.scraper.emails)
         df = self.read_emails(self.scraper.emails)
-        print('new data\n', df)
+        if printall: print('new data\n', df)
         self.update(df)
 
     def save(self, filename): 
